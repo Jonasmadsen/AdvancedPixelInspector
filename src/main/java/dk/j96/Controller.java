@@ -1,6 +1,5 @@
-package AdvancedPixelInspector;
+package dk.j96;
 
-import AdvancedPixelInspector.utils.utils;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
@@ -16,10 +15,17 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.awt.event.KeyEvent.VK_PRINTSCREEN;
+import static java.awt.event.KeyEvent.VK_SHIFT;
 
 public class Controller {
 
@@ -38,7 +44,7 @@ public class Controller {
     LimitedTextField txtX, txtY, txtInt, txtRGB, txtAlpha, txtOffsetX, txtOffsetY;
     @FXML
     Canvas canvasBig, canvasSmall;
-    private List<Color> ColorBank = new ArrayList<>();
+    private final List<Color> ColorBank = new ArrayList<>();
 
     private Color currentColor;
 
@@ -61,8 +67,35 @@ public class Controller {
     //Updates the screen by taking a new screenshot
     @FXML
     private void btnUpdateScreen() {
-        image = robot.createScreenCapture(new Rectangle(0, 0, screenSize.width, screenSize.height));
+        image = getScreenCapture();
         render();
+    }
+
+    private BufferedImage getScreenCapture() {
+        robot.keyPress(VK_SHIFT);
+        robot.delay(40);
+        robot.keyPress(VK_PRINTSCREEN);
+        robot.delay(40);
+        robot.keyRelease(VK_PRINTSCREEN);
+        robot.delay(40);
+        robot.keyRelease(VK_SHIFT);
+        robot.delay(40);
+
+        Transferable transferable = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
+        try {
+            return (BufferedImage) (Image) transferable.getTransferData(DataFlavor.imageFlavor);
+        } catch (UnsupportedFlavorException | IOException e) {
+            e.printStackTrace();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException interruptedException) {
+                interruptedException.printStackTrace();
+            }
+            //We try again
+            return getScreenCapture();
+        }
+        //TODO: Enable when bug is fixed?? or security is no longer needed.
+        //robot.createScreenCapture(new Rectangle(0, 0, screenSize.width, screenSize.height));
     }
 
     @FXML
@@ -151,7 +184,7 @@ public class Controller {
         screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
         //We take a starting screenshot.
-        image = robot.createScreenCapture(new Rectangle(screenSize));
+        image = getScreenCapture();
 
         //Create the topbar of the Vbox
         createTopBarColorSpace();
@@ -245,8 +278,9 @@ public class Controller {
         gcCanvasSmall.clearRect(0, 0, 80, 80);
 
         //loop that the paints the big canvas
-        for (int i = 0; i < 50; i++)
-            for (int j = 0; j < 50; j++) {
+        int zoom = 100;
+        for (int i = 0; i < zoom; i++)
+            for (int j = 0; j < zoom; j++) {
                 if (!((offsetx + x) + i - 25 < 0 || (offsety + y) + j - 25 < 0 || (offsetx + x) + i - 25 > screenSize.width - 1 || (offsety + y) + j - 25 > screenSize.height - 1))
                     utils.paintRectWithColor(i * 10, j * 10, 8, 8, new Color(getPixelColor((offsetx + x) + i - 25, (offsety + y) + j - 25)), gcCanvasBig);
             }
@@ -275,6 +309,7 @@ public class Controller {
 
     //Steals back the focus from the Tabs!
     public void paneClickedWithMouse(MouseEvent mouseEvent) {
+        System.out.println("User wanted focus back." + mouseEvent.toString());
         canvasBig.requestFocus();
     }
 

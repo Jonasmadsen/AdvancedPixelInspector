@@ -1,4 +1,4 @@
-package AdvancedPixelInspector.utils;
+package dk.j96;
 
 import javafx.scene.canvas.GraphicsContext;
 

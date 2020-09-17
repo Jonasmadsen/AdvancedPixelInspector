@@ -1,4 +1,4 @@
-package AdvancedPixelInspector;
+package dk.j96;
 
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
