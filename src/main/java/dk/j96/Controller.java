@@ -1,6 +1,7 @@
 package dk.j96;
 
 import javafx.fxml.FXML;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -8,30 +9,24 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.robot.Robot;
+import javafx.stage.Screen;
 
-import java.awt.*;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static java.awt.event.KeyEvent.VK_PRINTSCREEN;
-import static java.awt.event.KeyEvent.VK_SHIFT;
 
 public class Controller {
 
     private static Robot robot;
-    private static Dimension screenSize;
-    private static BufferedImage image;
     @FXML
     public VBox ColorSpaceVBox;
     @FXML
@@ -41,7 +36,7 @@ public class Controller {
     @FXML
     public AnchorPane anchorPane;
     @FXML
-    LimitedTextField txtX, txtY, txtInt, txtRGB, txtAlpha, txtOffsetX, txtOffsetY;
+    LimitedTextField txtX, txtY, txtInt, txtHex, txtAlpha, txtOffsetX, txtOffsetY;
     @FXML
     Canvas canvasBig, canvasSmall;
     private final List<Color> ColorBank = new ArrayList<>();
@@ -50,17 +45,23 @@ public class Controller {
 
     private GraphicsContext gcCanvasSmall, gcCanvasBig;
 
-    private int x, y, offsetx, offsety;
+    private int x, y, offsetX, offsetY;
+
+    private static Image image;
+
+    private static Rectangle2D screenSize;
 
     //Gets the color from Location
-    private static int getPixelColor(int x, int y) {
-        return image.getRGB(x, y);
+    private static Color getPixelColor(int x, int y) {
+        if (!(image == null))
+        return image.getPixelReader().getColor(x,y);
+        return new Color(1,1,1,1);
     }
 
     @FXML
     private void btnApplyOffset() {
-        offsetx = Integer.parseInt(txtOffsetX.getText());
-        offsety = Integer.parseInt(txtOffsetY.getText());
+        offsetX = Integer.parseInt(txtOffsetX.getText());
+        offsetY = Integer.parseInt(txtOffsetY.getText());
         render();
     }
 
@@ -71,36 +72,14 @@ public class Controller {
         render();
     }
 
-    private BufferedImage getScreenCapture() {
-        robot.keyPress(VK_SHIFT);
-        robot.delay(40);
-        robot.keyPress(VK_PRINTSCREEN);
-        robot.delay(40);
-        robot.keyRelease(VK_PRINTSCREEN);
-        robot.delay(40);
-        robot.keyRelease(VK_SHIFT);
-        robot.delay(40);
-
-        Transferable transferable = Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null);
-        try {
-            return (BufferedImage) (Image) transferable.getTransferData(DataFlavor.imageFlavor);
-        } catch (UnsupportedFlavorException | IOException e) {
-            e.printStackTrace();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException interruptedException) {
-                interruptedException.printStackTrace();
-            }
-            //We try again
-            return getScreenCapture();
-        }
-        //TODO: Enable when bug is fixed?? or security is no longer needed.
-        //robot.createScreenCapture(new Rectangle(0, 0, screenSize.width, screenSize.height));
+    private Image getScreenCapture() {
+        image = robot.getScreenCapture(null, new Rectangle2D(0, 0, screenSize.getWidth(), screenSize.getHeight()));
+        return image;
     }
 
     @FXML
     private void btnJump() {
-        //Interpret the value from the textfield and force it inside the limits of the screen.
+        //Interpret the value from the textField and force it inside the limits of the screen.
         if (txtX.getText().isEmpty())
             x = 0;
         else x = Integer.parseInt(txtX.getText());
@@ -170,7 +149,7 @@ public class Controller {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle("About");
         alert.setHeaderText("For License And Source Code See:");
-        alert.setContentText("https://github.com/Jonasmadsen/PixelColorGetter");
+        alert.setContentText("https://github.com/Jonasmadsen/AdvancedPixelInspector");
         alert.showAndWait();
     }
 
@@ -181,23 +160,21 @@ public class Controller {
         robot = utils.initRobot();
 
         //Gets the screenSize.
-        screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        screenSize = Screen.getPrimary().getBounds();
 
         //We take a starting screenshot.
         image = getScreenCapture();
 
-        //Create the topbar of the Vbox
+        //Create the topBar of the Vbox
         createTopBarColorSpace();
 
         //Getting the GraphicsContext from the canvas
         gcCanvasSmall = canvasSmall.getGraphicsContext2D();
         gcCanvasBig = canvasBig.getGraphicsContext2D();
 
-        //The offset starts at (0,0)
-        offsetx = 0;
-        offsety = 0;
-
-        //Initially we start at (0,0)
+        //The offset defaults to (0,0)
+        offsetX = 0;
+        offsetY = 0;
         setLocation(0, 0);
 
         //We can now do the first render
@@ -205,34 +182,34 @@ public class Controller {
     }
 
     //Sets a custom Location
-    private void setLocation(int newx, int newy) {
+    private void setLocation(int newX, int newY) {
 
         //Force it within screenSize
-        if (newx > screenSize.width - 1) {
-            newx = screenSize.width - 1;
-            txtX.setText("" + newx);
+        if (newX > screenSize.getWidth() - 1) {
+            newX = (int) (screenSize.getWidth() - 1);
+            txtX.setText("" + newX);
         }
-        if (newy > screenSize.height - 1) {
-            newy = screenSize.height - 1;
-            txtY.setText("" + newy);
+        if (newY > screenSize.getHeight() - 1) {
+            newY = (int) (screenSize.getHeight() - 1);
+            txtY.setText("" + newY);
         }
-        if (newx < 0) {
-            newx = 0;
-            txtX.setText("" + newx);
+        if (newX < 0) {
+            newX = 0;
+            txtX.setText("" + newX);
         }
-        if (newy < 0) {
-            newy = 0;
-            txtY.setText("" + newy);
+        if (newY < 0) {
+            newY = 0;
+            txtY.setText("" + newY);
         }
 
-        txtX.setText("" + newx);
-        txtY.setText("" + newy);
+        txtX.setText("" + newX);
+        txtY.setText("" + newY);
         x = Integer.parseInt(txtX.getText());
         y = Integer.parseInt(txtY.getText());
         render();
     }
 
-    //Creates the topbar in the ColorSpace in the GUI
+    //Creates the topBar in the ColorSpace in the GUI
     private void createTopBarColorSpace() {
         HBox hBox = new HBox();
         Button deleteListButton = new Button();
@@ -241,7 +218,7 @@ public class Controller {
         Button copyToJavaListButton = new Button();
         copyToJavaListButton.setText("Copy Java List");
         copyToJavaListButton.setOnAction(e -> makeJavaPrintOutToClipboard());
-        hBox.getChildren().addAll(deleteListButton, new Label("      int         "), new Label("         rgb      "), new Label("   alpha"), new Label("hex"), copyToJavaListButton);
+        hBox.getChildren().addAll(deleteListButton, new Label("alpha"), new Label("hex"), copyToJavaListButton);
         hBox.setSpacing(50);
         ColorSpaceVBox.getChildren().add(hBox);
     }
@@ -258,13 +235,15 @@ public class Controller {
         StringBuilder colorList = new StringBuilder();
 
         for (Color color : ColorBank) {
-            colorList.append("new Color(").append(color.getRGB()).append("),").append(System.lineSeparator());
+            colorList.append("Color.web(\"").append(utils.toHexString(color)).append("\"),").append(System.lineSeparator());
         }
 
         colorList.setCharAt(colorList.length() - 2, ' ');
 
-        StringSelection selection = new StringSelection(colorList.toString());
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+        final Clipboard clipboard = Clipboard.getSystemClipboard();
+        final ClipboardContent content = new ClipboardContent();
+        content.putString(colorList.toString());
+        clipboard.setContent(content);
     }
 
     //Renders the graphics.
@@ -281,12 +260,12 @@ public class Controller {
         int zoom = 100;
         for (int i = 0; i < zoom; i++)
             for (int j = 0; j < zoom; j++) {
-                if (!((offsetx + x) + i - 25 < 0 || (offsety + y) + j - 25 < 0 || (offsetx + x) + i - 25 > screenSize.width - 1 || (offsety + y) + j - 25 > screenSize.height - 1))
-                    utils.paintRectWithColor(i * 10, j * 10, 8, 8, new Color(getPixelColor((offsetx + x) + i - 25, (offsety + y) + j - 25)), gcCanvasBig);
+                if (!((offsetX + x) + i - 25 < 0 || (offsetY + y) + j - 25 < 0 || (offsetX + x) + i - 25 > screenSize.getWidth() - 1 || (offsetY + y) + j - 25 > screenSize.getHeight() - 1))
+                    utils.paintRectWithColor(i * 10, j * 10, 8, 8, getPixelColor((offsetX + x) + i - 25, (offsetY + y) + j - 25), gcCanvasBig);
             }
 
         //Current pixel color found
-        currentColor = new Color(getPixelColor(offsetx + x, offsety + y));
+        currentColor = getPixelColor(offsetX + x, offsetY + y);
 
         //AddAllColors checkMark is checked we add this color.
         if (chkAddAllColors.isSelected()) {
@@ -294,13 +273,13 @@ public class Controller {
         }
 
         //Current Pixel enlarged on Big canvas
-        gcCanvasBig.setFill(utils.awtColortofxColor(currentColor));
+        gcCanvasBig.setFill(currentColor);
         gcCanvasBig.fillRect(246, 246, 18, 18);
 
         //Information extracted
-        txtInt.setText("" + currentColor.getRGB());
-        txtRGB.setText("R: " + currentColor.getRed() + " G: " + currentColor.getGreen() + " B: " + currentColor.getBlue());
-        txtAlpha.setText("" + currentColor.getAlpha());
+        txtInt.setText("" + currentColor.hashCode());
+        txtHex.setText("" + utils.toHexString(currentColor));
+        txtAlpha.setText("" + currentColor.getOpacity());
 
         //Paint the small canvas with current color
         utils.paintRectWithColor(0, 0, 80, 80, Color.BLACK, gcCanvasSmall);
@@ -328,7 +307,7 @@ public class Controller {
         //Adds currentColor to ColorBank
         ColorBank.add(currentColor);
 
-        //We make a new Hbox to be placed in the ColorSpaceVbox
+        //We make a new HBox to be placed in the ColorSpaceVbox
         HBox hBox = new HBox();
         Button button = new Button();
         button.setStyle("-fx-background-color: " + utils.toHexString(currentColor));
@@ -354,22 +333,16 @@ public class Controller {
             }
         });
 
-        String rgb = utils.concatSpacesToString("" + currentColor.getRGB(), 10 - ("" + currentColor.getRGB()).length());
-        String r = utils.concatSpacesToString("" + currentColor.getRed(), 3 - ("" + currentColor.getRed()).length());
-        String g = utils.concatSpacesToString("" + currentColor.getGreen(), 3 - ("" + currentColor.getGreen()).length());
-        String b = utils.concatSpacesToString("" + currentColor.getBlue(), 3 - ("" + currentColor.getBlue()).length());
-        String alpha = utils.concatSpacesToString("" + currentColor.getAlpha(), 3 - ("" + currentColor.getAlpha()).length());
+        String alpha = utils.concatSpacesToString("" + currentColor.getOpacity(), 3 - ("" + currentColor.getOpacity()).length());
         String hex = utils.concatSpacesToString("" + utils.toHexString(currentColor), 10 - ("" + utils.toHexString(currentColor)).length());
 
         hBox.getChildren().addAll(button,
-                new Label("" + rgb),
-                new Label("R: " + r + " G: " + g + " B: " + b),
                 new Label("" + alpha),
                 new Label("" + hex));
         hBox.setSpacing(40);
         ColorSpaceVBox.getChildren().add(hBox);
 
-        lblResponse.setText("Added Color: " + currentColor.getRGB());
+        lblResponse.setText("Added Color: " + utils.toHexString(currentColor));
     }
 }
 

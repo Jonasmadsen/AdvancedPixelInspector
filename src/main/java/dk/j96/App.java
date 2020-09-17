@@ -14,7 +14,7 @@ public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("AdvancedPixelInspector.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/AdvancedPixelInspector.fxml"));
         primaryStage.setTitle("Advanced Color Picker");
         primaryStage.setScene(new Scene(root, 800, 600));
         primaryStage.show();

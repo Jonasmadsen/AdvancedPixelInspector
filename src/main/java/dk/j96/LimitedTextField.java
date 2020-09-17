@@ -4,8 +4,6 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.scene.control.TextField;
 
-import java.util.Objects;
-
 public class LimitedTextField extends TextField {
 
     private final IntegerProperty maxLength;
@@ -15,18 +13,9 @@ public class LimitedTextField extends TextField {
         this.maxLength = new SimpleIntegerProperty(-1);
     }
 
-    public IntegerProperty maxLengthProperty() {
-        return this.maxLength;
-    }
-
-    //Intelij is Wrong it must be public to be accessed in AdvancedPixelInspector.fxml
+    //IntelliJ is Wrong it must be public to be accessed in AdvancedPixelInspector.fxml
     public final Integer getMaxLength() {
         return this.maxLength.getValue();
-    }
-
-    public final void setMaxLength(Integer maxLength) {
-        Objects.requireNonNull(maxLength, "Max length cannot be null, -1 for no limit");
-        this.maxLength.setValue(maxLength);
     }
 
     @Override
@@ -35,22 +24,22 @@ public class LimitedTextField extends TextField {
             // Default behavior, in case of no max length
             super.replaceText(start, end, insertedText);
         } else {
-            // Get the text in the textfield, before the user enters something
+            // Get the text in the textField, before the user enters something
             String currentText = this.getText() == null ? "" : this.getText();
 
-            // Compute the text that should normally be in the textfield now
+            // Compute the text that should normally be in the textField now
             String finalText = currentText.substring(0, start) + insertedText + currentText.substring(end);
 
-            // If the max length is not excedeed
-            int numberOfexceedingCharacters = finalText.length() - this.getMaxLength();
-            if (numberOfexceedingCharacters <= 0) {
+            // If the max length is not exceeded
+            int numberExceedingCharacters = finalText.length() - this.getMaxLength();
+            if (numberExceedingCharacters <= 0) {
                 // Normal behavior
                 super.replaceText(start, end, insertedText);
             } else {
                 // Otherwise, cut the the text that was going to be inserted
                 String cutInsertedText = insertedText.substring(
                         0,
-                        insertedText.length() - numberOfexceedingCharacters
+                        insertedText.length() - numberExceedingCharacters
                 );
 
                 // And replace this text
