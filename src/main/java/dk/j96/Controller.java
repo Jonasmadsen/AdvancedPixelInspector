@@ -235,7 +235,7 @@ public class Controller {
         StringBuilder colorList = new StringBuilder();
 
         for (Color color : ColorBank) {
-            colorList.append("Color.web(\"").append(utils.toHexString(color)).append("\"),").append(System.lineSeparator());
+            colorList.append("new GlobalPoint(Color.web(\"").append(utils.toHexString(color)).append("\")),").append(System.lineSeparator());
         }
 
         colorList.setCharAt(colorList.length() - 2, ' ');

@@ -9,6 +9,7 @@ public abstract class utils {
     //Converts a javafx.scene.paint.Color to Hex String.
     public static String toHexString(Color color) {
         String hexColour = Integer.toHexString(color.hashCode());
+        hexColour = hexColour.substring(0, hexColour.length() - 2);
         if (hexColour.length() < 6) {
             hexColour = "000000".substring(0, 6 - hexColour.length()) + hexColour;
         }
