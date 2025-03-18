@@ -35,7 +35,7 @@ public class LimitedTextField extends TextField {
                 // Normal behavior
                 super.replaceText(start, end, insertedText);
             } else {
-                // Otherwise, cut the the text that was going to be inserted
+                // Otherwise cut the text that was going to be inserted
                 String cutInsertedText = insertedText.substring(
                         0,
                         insertedText.length() - numberExceedingCharacters
