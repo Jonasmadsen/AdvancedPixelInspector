@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>dk.j96</groupId>
     <artifactId>AdvancedPixelInspector</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>15</maven.compiler.release>
-        <javafx.version>15</javafx.version>
+        <maven.compiler.release>23</maven.compiler.release>
+        <javafx.version>23</javafx.version>
     </properties>
     <dependencies>
         <dependency>

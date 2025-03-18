@@ -30,6 +30,9 @@
                 <Canvas fx:id="canvasSmall" height="80.0" layoutX="78.0" layoutY="419.0" width="80.0" />
                 <Button layoutX="163.0" layoutY="444.0" mnemonicParsing="false" onAction="#btnRight" text="Right" />
                 <Button layoutX="93.0" layoutY="504.0" mnemonicParsing="false" onAction="#btnDown" text="Down" />
+                <Slider fx:id="zoomSlider" layoutX="20" layoutY="535" prefWidth="225"
+                        max="5" majorTickUnit="1" minorTickCount="0" snapToTicks="true"
+                        showTickLabels="true" showTickMarks="true"/>
                 <Canvas fx:id="canvasBig" height="500.0" layoutX="275.0" layoutY="31.0" onMouseClicked="#bigCanvasClickedWithMouse" width="500.0" />
             </Pane>
         </AnchorPane>

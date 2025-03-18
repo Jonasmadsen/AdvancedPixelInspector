@@ -13,7 +13,6 @@ public class LimitedTextField extends TextField {
         this.maxLength = new SimpleIntegerProperty(-1);
     }
 
-    //IntelliJ is Wrong it must be public to be accessed in AdvancedPixelInspector.fxml
     public final Integer getMaxLength() {
         return this.maxLength.getValue();
     }

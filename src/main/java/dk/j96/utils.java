@@ -4,6 +4,8 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.robot.Robot;
 
+import java.util.Arrays;
+
 public abstract class utils {
 
     //Converts a javafx.scene.paint.Color to Hex String.
@@ -21,7 +23,7 @@ public abstract class utils {
         try {
             return new Robot();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(Arrays.toString(e.getStackTrace()));
             System.out.println("Failed to create robot exiting now!");
             System.exit(0);
         }

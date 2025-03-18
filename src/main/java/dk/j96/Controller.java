@@ -5,10 +5,7 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
@@ -20,6 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.robot.Robot;
 import javafx.stage.Screen;
+import javafx.util.StringConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,18 +25,15 @@ import java.util.List;
 public class Controller {
 
     private static Robot robot;
-    @FXML
-    public VBox ColorSpaceVBox;
-    @FXML
-    public Label lblResponse;
-    @FXML
-    public CheckBox chkAddAllColors;
-    @FXML
-    public AnchorPane anchorPane;
-    @FXML
-    LimitedTextField txtX, txtY, txtInt, txtHex, txtAlpha, txtOffsetX, txtOffsetY;
-    @FXML
-    Canvas canvasBig, canvasSmall;
+    @FXML public VBox ColorSpaceVBox;
+    @FXML public Label lblResponse;
+    @FXML public CheckBox chkAddAllColors;
+    @FXML public AnchorPane anchorPane;
+    @FXML LimitedTextField txtX, txtY, txtInt, txtHex, txtAlpha, txtOffsetX, txtOffsetY;
+    @FXML Canvas canvasBig, canvasSmall;
+    @FXML private Slider zoomSlider;
+    private final String[] zoomLevels = {"1x", "4x", "25x", "100x", "400x", "10000x"};
+    private final int[] zoomValues = {500, 250, 100, 50, 25, 5}; // Mapped values
     private final List<Color> ColorBank = new ArrayList<>();
 
     private Color currentColor;
@@ -51,17 +46,31 @@ public class Controller {
 
     private static Rectangle2D screenSize;
 
+    private int pixels_per_side = 500;
+    private final int canvas_size = 500;
+    private int pixel_size = canvas_size / pixels_per_side;
+
+
+
     //Gets the color from Location
     private static Color getPixelColor(int x, int y) {
         if (!(image == null))
-        return image.getPixelReader().getColor(x,y);
+            try {
+                return image.getPixelReader().getColor(x,y);
+            } catch (IndexOutOfBoundsException e) {
+                return new Color(1,1,1,1);
+            }
         return new Color(1,1,1,1);
     }
 
     @FXML
     private void btnApplyOffset() {
-        offsetX = Integer.parseInt(txtOffsetX.getText());
-        offsetY = Integer.parseInt(txtOffsetY.getText());
+        if (txtOffsetX.getText().isEmpty())
+            offsetX = 0;
+        else offsetX = Integer.parseInt(txtOffsetX.getText());
+        if (txtOffsetY.getText().isEmpty())
+            offsetY = 0;
+        else offsetY = Integer.parseInt(txtOffsetY.getText());
         render();
     }
 
@@ -95,8 +104,11 @@ public class Controller {
         if (mouseEvent == null) {
             return;
         }
-        int newX = (int) mouseEvent.getX() / 10 - 25 + x;
-        int newY = (int) mouseEvent.getY() / 10 - 25 + y;
+        int mouse_x = (int) mouseEvent.getX();
+        int mouse_y = (int) mouseEvent.getY();
+
+        int newX = (mouse_x / pixel_size + x - pixels_per_side/2);
+        int newY = (mouse_y / pixel_size + y - pixels_per_side/2);
         setLocation(newX, newY);
     }
 
@@ -177,6 +189,32 @@ public class Controller {
         offsetY = 0;
         setLocation(0, 0);
 
+        zoomSlider.setLabelFormatter(new StringConverter<>() {
+            @Override
+            public String toString(Double value) {
+                return zoomLevels[value.intValue()];
+            }
+
+            @Override
+            public Double fromString(String string) {
+                for (int i = 0; i < zoomLevels.length; i++) {
+                    if (zoomLevels[i].equals(string)) {
+                        return (double) i;
+                    }
+                }
+                return 0.0; // Default case
+            }
+        });
+
+        // Update zoomValue when slider changes
+        zoomSlider.valueProperty().addListener((_, _, newVal) -> {
+            if (pixels_per_side != zoomValues[newVal.intValue()]) {
+                pixels_per_side = zoomValues[newVal.intValue()];
+                pixel_size = canvas_size / pixels_per_side;
+                render();
+            }
+        });
+
         //We can now do the first render
         render();
     }
@@ -214,10 +252,10 @@ public class Controller {
         HBox hBox = new HBox();
         Button deleteListButton = new Button();
         deleteListButton.setText("  Delete All  ");
-        deleteListButton.setOnAction(e -> deleteAllColors());
+        deleteListButton.setOnAction(_ -> deleteAllColors());
         Button copyToJavaListButton = new Button();
         copyToJavaListButton.setText("Copy Java List");
-        copyToJavaListButton.setOnAction(e -> makeJavaPrintOutToClipboard());
+        copyToJavaListButton.setOnAction(_ -> makeJavaPrintOutToClipboard());
         hBox.getChildren().addAll(deleteListButton, new Label("alpha"), new Label("hex"), copyToJavaListButton);
         hBox.setSpacing(50);
         ColorSpaceVBox.getChildren().add(hBox);
@@ -253,16 +291,26 @@ public class Controller {
         lblResponse.setText("");
 
         //Clear the 2 canvas
-        gcCanvasBig.clearRect(0, 0, 500, 500);
+        gcCanvasBig.clearRect(0, 0, canvas_size, canvas_size);
         gcCanvasSmall.clearRect(0, 0, 80, 80);
 
         //loop that the paints the big canvas
-        int zoom = 100;
-        for (int i = 0; i < zoom; i++)
-            for (int j = 0; j < zoom; j++) {
-                if (!((offsetX + x) + i - 25 < 0 || (offsetY + y) + j - 25 < 0 || (offsetX + x) + i - 25 > screenSize.getWidth() - 1 || (offsetY + y) + j - 25 > screenSize.getHeight() - 1))
-                    utils.paintRectWithColor(i * 10, j * 10, 8, 8, getPixelColor((offsetX + x) + i - 25, (offsetY + y) + j - 25), gcCanvasBig);
+        for (int i = 0; i < pixels_per_side; i++)
+            for (int j = 0; j < pixels_per_side; j++){
+                int pixel_x = i * pixel_size;
+                int pixel_y = j * pixel_size;
+                int pixel_draw = pixel_size;
+                if (pixels_per_side < 101)
+                    pixel_draw -= 1;
+                if (pixels_per_side < 26)
+                    pixel_draw -= 1;
+                Color pixel_color = getPixelColor((offsetX + x) + i - pixels_per_side / 2, (offsetY + y) + j - pixels_per_side / 2);
+                utils.paintRectWithColor(pixel_x, pixel_y, pixel_draw, pixel_draw, pixel_color, gcCanvasBig);
             }
+
+
+
+
 
         //Current pixel color found
         currentColor = getPixelColor(offsetX + x, offsetY + y);
@@ -278,7 +326,7 @@ public class Controller {
 
         //Information extracted
         txtInt.setText("" + currentColor.hashCode());
-        txtHex.setText("" + utils.toHexString(currentColor));
+        txtHex.setText(utils.toHexString(currentColor));
         txtAlpha.setText("" + currentColor.getOpacity());
 
         //Paint the small canvas with current color
@@ -314,7 +362,7 @@ public class Controller {
         button.setText("Delete Color");
 
         //Defines the function that removes the color when Delete Button is clicked.
-        button.setOnMouseClicked(t -> {
+        button.setOnMouseClicked(_ -> {
             for (Node node : ColorSpaceVBox.getChildren()) {
                 if (node.getClass() == HBox.class) {
                     HBox hBox1 = (HBox) node;
@@ -324,7 +372,7 @@ public class Controller {
                             if (button1 == button) {
                                 ColorSpaceVBox.getChildren().remove(hBox1);
                                 ColorBank.remove(currentColor);
-                                //We have to return if we dont we will try to iterate through the NOW deleted hBox!
+                                //We have to return if we don't we will try to iterate through the NOW deleted hBox!
                                 return;
                             }
                         }
@@ -334,11 +382,11 @@ public class Controller {
         });
 
         String alpha = utils.concatSpacesToString("" + currentColor.getOpacity(), 3 - ("" + currentColor.getOpacity()).length());
-        String hex = utils.concatSpacesToString("" + utils.toHexString(currentColor), 10 - ("" + utils.toHexString(currentColor)).length());
+        String hex = utils.concatSpacesToString(utils.toHexString(currentColor), 10 - (utils.toHexString(currentColor)).length());
 
         hBox.getChildren().addAll(button,
-                new Label("" + alpha),
-                new Label("" + hex));
+                new Label(alpha),
+                new Label(hex));
         hBox.setSpacing(40);
         ColorSpaceVBox.getChildren().add(hBox);
 
